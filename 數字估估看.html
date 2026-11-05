@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數線估值練習</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 自訂滑桿外觀，使其更適合兒童操作 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            margin: 10px 0;
+            touch-action: none; 
+        }
+        input[type=range]:focus {
+            outline: none;
+        }
+        /* 滑軌設計 */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 16px;
+            cursor: pointer;
+            background: #cbd5e1; 
+            border-radius: 8px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+        }
+        /* 滑塊設計 */
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 40px;
+            width: 40px;
+            border-radius: 50%;
+            background: #f97316; 
+            cursor: grab;
+            margin-top: -12px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            border: 4px solid #fff;
+            transition: transform 0.1s, background-color 0.2s;
+        }
+        input[type=range]::-webkit-slider-thumb:active {
+            cursor: grabbing;
+            transform: scale(1.15);
+            background: #ea580c;
+        }
+        /* 鎖定時（答對時）的滑軌與滑塊顏色 */
+        input[type=range]:disabled::-webkit-slider-thumb {
+            background: #22c55e; 
+            cursor: not-allowed;
+            transform: scale(1.15);
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.7);
+            border: 4px solid #fff;
+        }
+        input[type=range]:disabled::-webkit-slider-runnable-track {
+            background: #e2e8f0;
+            cursor: not-allowed;
+        }
+        
+        /* 動畫效果 */
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        .animate-pop {
+            animation: pop 0.4s ease-in-out;
+        }
+
+        /* 自訂 Checkbox */
+        .setting-checkbox {
+            accent-color: #f97316;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-amber-50 min-h-screen flex flex-col items-center justify-center font-sans p-4">
+
+    <!-- 老師設定區 -->
+    <div class="bg-white rounded-2xl shadow-md p-4 mb-6 w-full max-w-3xl border-2 border-orange-200">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-2 text-orange-800 font-bold text-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                老師設定：勾選出現的跨度
+            </div>
+            <div class="flex items-center gap-6">
+                <label class="flex items-center gap-2 cursor-pointer font-bold text-gray-700 hover:text-orange-600">
+                    <input type="checkbox" class="setting-checkbox span-cb" value="10" checked>
+                    跨度 10
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer font-bold text-gray-700 hover:text-orange-600">
+                    <input type="checkbox" class="setting-checkbox span-cb" value="50" checked>
+                    跨度 50
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer font-bold text-gray-700 hover:text-orange-600">
+                    <input type="checkbox" class="setting-checkbox span-cb" value="100" checked>
+                    跨度 100
+                </label>
+            </div>
+            <div id="setting-warning" class="text-red-500 text-sm font-bold opacity-0 transition-opacity">至少須勾選一項！</div>
+        </div>
+    </div>
+
+    <!-- 遊戲主要容器 -->
+    <div class="bg-white rounded-[2rem] shadow-2xl p-6 sm:p-10 w-full max-w-3xl border-4 border-amber-200 relative overflow-hidden">
+        
+        <!-- 裝飾用背景元素 -->
+        <div class="absolute top-[-40px] left-[-40px] w-40 h-40 bg-yellow-200 rounded-full opacity-40 z-0 pointer-events-none"></div>
+        <div class="absolute bottom-[-50px] right-[-50px] w-48 h-48 bg-orange-200 rounded-full opacity-40 z-0 pointer-events-none"></div>
+
+        <div class="relative z-10 text-center">
+            <h1 class="text-3xl sm:text-4xl font-black text-amber-700 mb-3 flex items-center justify-center gap-2">
+                📏 數字估估看
+            </h1>
+            <p class="text-gray-500 mb-6 font-bold text-lg">憑感覺拖曳滑塊，<span class="text-orange-500">放開手</span>後才會檢查答案喔！</p>
+
+            <!-- 題目顯示區 -->
+            <div class="bg-amber-100 rounded-3xl p-6 mb-10 shadow-inner border-2 border-amber-300">
+                <span class="text-xl sm:text-2xl text-amber-900 font-bold">請找找看這個數字在哪裡：</span>
+                <div class="text-6xl sm:text-8xl font-black text-orange-600 mt-2 tracking-wider drop-shadow-md" id="target-display">
+                    --
+                </div>
+            </div>
+
+            <!-- 數線與滑桿區 -->
+            <div class="mb-10 relative px-4">
+                <!-- 滑桿，step 設為 1 讓拖曳平滑 -->
+                <input type="range" id="slider" autocomplete="off" step="1">
+                
+                <!-- 刻度與數字標示 -->
+                <div id="ticks-container" class="flex justify-between text-sm sm:text-base font-bold text-gray-400 mt-4 px-[16px]">
+                    <!-- JS 會動態填入刻度 -->
+                </div>
+            </div>
+
+            <!-- 回饋訊息區 -->
+            <div id="feedback-container" class="min-h-[100px] flex items-center justify-center rounded-2xl bg-gray-50 mb-6 border-4 border-dashed border-gray-300 transition-all duration-300 px-6 py-4">
+                <div id="feedback" class="text-xl sm:text-2xl font-bold text-gray-500">
+                    拉好位置後，鬆開手看看對不對！
+                </div>
+            </div>
+
+            <!-- 控制按鈕 -->
+            <div class="h-20">
+                <button id="next-btn" onclick="initGame()" class="hidden w-full sm:w-auto px-12 py-4 bg-green-500 hover:bg-green-600 text-white font-black rounded-2xl shadow-[0_6px_0_#16a34a] hover:shadow-[0_2px_0_#16a34a] hover:translate-y-[4px] transition-all text-2xl mx-auto">
+                    太棒了！下一題 🚀
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 元素
+        const slider = document.getElementById('slider');
+        const ticksContainer = document.getElementById('ticks-container');
+        const targetDisplay = document.getElementById('target-display');
+        const feedback = document.getElementById('feedback');
+        const feedbackContainer = document.getElementById('feedback-container');
+        const nextBtn = document.getElementById('next-btn');
+        const checkboxes = document.querySelectorAll('.span-cb');
+        const warning = document.getElementById('setting-warning');
+
+        // 遊戲狀態變數
+        let currentMin = 0;
+        let currentMax = 100;
+        let currentSpan = 100;
+        let targetValue = 0;
+        let currentTolerance = 5;
+
+        // 監聽 Checkbox，確保至少一個被勾選
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const checkedCb = document.querySelectorAll('.span-cb:checked');
+                if (checkedCb.length === 0) {
+                    cb.checked = true; // 強制勾回來
+                    
+                    // 顯示警告動畫
+                    warning.classList.remove('opacity-0');
+                    setTimeout(() => { warning.classList.add('opacity-0'); }, 2000);
+                }
+            });
+        });
+
+        // 1. 取得允許的跨度並產生新的數線範圍
+        function generateRange() {
+            // 找出勾選的跨度
+            const checkedSpans = Array.from(document.querySelectorAll('.span-cb:checked')).map(cb => parseInt(cb.value));
+            
+            // 隨機挑選一個允許的跨度
+            currentSpan = checkedSpans[Math.floor(Math.random() * checkedSpans.length)];
+            
+            // 最大值不超過 1000，起點要是 currentSpan 的倍數
+            const maxMultiplier = Math.floor((1000 - currentSpan) / currentSpan);
+            currentMin = Math.floor(Math.random() * (maxMultiplier + 1)) * currentSpan;
+            currentMax = currentMin + currentSpan;
+            
+            // 設定滑桿屬性
+            slider.min = currentMin;
+            slider.max = currentMax;
+            
+            // 動態設定容錯範圍
+            if (currentSpan === 10) currentTolerance = 1;
+            else if (currentSpan === 50) currentTolerance = 3; // 2~3皆可，設3比較友善
+            else if (currentSpan === 100) currentTolerance = 5; // 3~5皆可，設5
+        }
+
+        // 2. 初始化刻度
+        function generateTicks() {
+            ticksContainer.innerHTML = '';
+            
+            // 決定每幾個單位畫一個刻度
+            let step = 10;
+            if (currentSpan === 10) step = 1;      // 跨度10：每 1 畫刻度
+            else if (currentSpan === 50) step = 10; // 跨度50：每 10 畫刻度
+            else if (currentSpan === 100) step = 10;// 跨度100：每 10 畫刻度
+            
+            const numTicks = currentSpan / step;
+            
+            for (let i = 0; i <= numTicks; i++) {
+                const tickValue = currentMin + (step * i);
+                const tick = document.createElement('div');
+                tick.className = 'flex flex-col items-center relative';
+                
+                // 頭尾標粗，其餘標細
+                const isMajor = (i === 0 || i === numTicks);
+                
+                tick.innerHTML = `
+                    <div class="w-1 ${isMajor ? 'h-4 bg-gray-400' : 'h-3 bg-gray-300'} mb-2 rounded-full"></div>
+                    <span class="${isMajor ? 'text-gray-700 font-black text-base sm:text-lg' : 'text-gray-400 text-xs sm:text-sm'}">${tickValue}</span>
+                `;
+                ticksContainer.appendChild(tick);
+            }
+        }
+
+        // 3. 隨機產生目標數字 (避開中位數，偏向兩端)
+        function generateTarget() {
+            // 定義兩端區域大小：前後 35% 區間 (避開中間的 30%)
+            const edgeSize = Math.floor(currentSpan * 0.35); 
+            const isLeftSide = Math.random() < 0.5;
+            
+            // 產生 1 到 edgeSize 之間的偏移量
+            let offset = Math.floor(Math.random() * edgeSize) + 1;
+            
+            if (isLeftSide) {
+                return currentMin + offset;
+            } else {
+                return currentMax - offset;
+            }
+        }
+
+        // 4. 初始化/重置遊戲
+        function initGame() {
+            generateRange();
+            generateTicks();
+            
+            targetValue = generateTarget();
+            targetDisplay.textContent = targetValue;
+            targetDisplay.classList.add('animate-pop');
+            setTimeout(() => targetDisplay.classList.remove('animate-pop'), 400);
+
+            // 重置滑桿到中間
+            slider.disabled = false;
+            slider.value = currentMin + (currentSpan / 2); 
+
+            // 重置回饋區
+            feedback.textContent = '拉好位置後，鬆開手看看對不對！';
+            feedback.className = 'text-xl sm:text-2xl font-bold text-gray-500';
+            feedbackContainer.className = 'min-h-[100px] flex items-center justify-center rounded-2xl bg-gray-50 mb-6 border-4 border-dashed border-gray-300 transition-all duration-300 px-6 py-4';
+            
+            // 隱藏下一題按鈕
+            nextBtn.classList.add('hidden');
+            nextBtn.classList.remove('inline-block', 'animate-pop');
+        }
+
+        // 5. 處理滑桿「放開」事件 (change 事件)
+        slider.addEventListener('change', (e) => {
+            const currentValue = parseInt(e.target.value, 10);
+            const difference = currentValue - targetValue;
+
+            if (Math.abs(difference) <= currentTolerance) {
+                // 依照「當前跨度」計算最近的基準數字 (進位提示)
+                // 例如目標198，跨度50，會計算出 Math.round(198/50)*50 = 200
+                const closestRoundNumber = Math.round(targetValue / currentSpan) * currentSpan;
+                
+                slider.disabled = true; // 鎖定滑桿
+                
+                // 顯示特殊過關提示
+                feedback.innerHTML = `🎉 太棒了！<br><span class="text-3xl text-green-800">${targetValue}</span> 很接近 <span class="text-3xl text-green-800">${closestRoundNumber}</span>！`;
+                feedback.className = 'text-xl sm:text-2xl font-black text-green-700 leading-relaxed text-center';
+                feedbackContainer.className = 'min-h-[100px] flex items-center justify-center rounded-2xl bg-green-100 mb-6 border-4 border-solid border-green-500 transition-all duration-300 shadow-inner px-6 py-4 scale-105';
+                
+                // 顯示下一題按鈕
+                nextBtn.classList.remove('hidden');
+                nextBtn.classList.add('inline-block', 'animate-pop');
+            } 
+            else if (difference > 0) {
+                // 放開時位置太大，不顯示具體數字
+                feedback.innerHTML = `太大了 ⬅️ 請往左拉`;
+                feedback.className = 'text-2xl sm:text-3xl font-black text-red-500';
+                feedbackContainer.className = 'min-h-[100px] flex items-center justify-center rounded-2xl bg-red-50 mb-6 border-4 border-dashed border-red-300 transition-all duration-100 px-6 py-4';
+            } 
+            else {
+                // 放開時位置太小，不顯示具體數字
+                feedback.innerHTML = `太小了 ➡️ 請往右拉`;
+                feedback.className = 'text-2xl sm:text-3xl font-black text-blue-500';
+                feedbackContainer.className = 'min-h-[100px] flex items-center justify-center rounded-2xl bg-blue-50 mb-6 border-4 border-dashed border-blue-300 transition-all duration-100 px-6 py-4';
+            }
+        });
+
+        // 頁面載入時執行初始化
+        window.onload = () => {
+            initGame();
+        };
+    </script>
+</body>
+</html>

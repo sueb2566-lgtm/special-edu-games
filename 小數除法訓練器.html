@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小數除法：完整長除法結構學習系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { 
+            font-family: '標楷體', 'PingFang TC', 'Microsoft JhengHei', sans-serif; 
+            background-color: #FAF9F6; 
+            color: #451a03; 
+        }
+        
+        .math-grid {
+            display: grid;
+            gap: 0px;
+            margin: 1rem auto;
+            width: fit-content;
+            background-color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .cell {
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-family: 'Calibri', 'Arial', sans-serif;
+            position: relative;
+        }
+        
+        .cell-num { width: 3rem; }
+        .cell-dot { width: 1rem; }
+
+        .grid-helper { border: 1px dashed #e7e5e4; }
+        .bracket-top { border-top: 2px solid #451a03; }
+        .bracket-left { border-left: 2px solid #451a03; border-bottom-left-radius: 8px;}
+
+        .cell-input {
+            width: 80%;
+            height: 80%;
+            text-align: center;
+            font-size: 1.5rem;
+            border: 2px solid #a8a29e;
+            border-radius: 6px;
+            outline: none;
+            transition: all 0.2s;
+            background-color: #fafaf9;
+        }
+        .cell-input:focus { border-color: #d97706; background-color: #fff; box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.2); transform: scale(1.05); z-index: 10; }
+        .cell-input.correct { border-color: #10b981; background-color: #d1fae5; color: #065f46; pointer-events: none; }
+        .cell-input.error { border-color: #ef4444; background-color: #fee2e2; color: #991b1b; }
+        .cell-input.shake { animation: shake 0.45s cubic-bezier(.36,.07,.19,.97) both; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            15% { transform: translateX(-8px); }
+            30% { transform: translateX(8px); }
+            45% { transform: translateX(-6px); }
+            60% { transform: translateX(6px); }
+            75% { transform: translateX(-3px); }
+            90% { transform: translateX(3px); }
+        }
+
+        .crossed-out { position: relative; color: #a8a29e; }
+        .crossed-out::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: -10%;
+            width: 120%;
+            height: 2px;
+            background-color: #ef4444;
+            transform: rotate(-25deg);
+        }
+
+        .highlight-text { font-weight: bold; color: #b45309; background-color: #fef3c7; padding: 0 4px; border-radius: 4px; }
+        .step-container { display: none; animation: fadeIn 0.5s ease-in-out; }
+        .step-container.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 輔助小數點位置 */
+        .q-dot::after {
+            content: '.';
+            position: absolute;
+            bottom: -0.5rem;
+            right: -0.5rem;
+            font-size: 2rem;
+            color: #ef4444;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="p-6">
+
+    <!-- 控制面板 -->
+    <div id="setup-panel" class="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-sm border-t-4 border-amber-700 mb-6">
+        <h2 class="text-2xl font-bold text-amber-900 mb-6 flex items-center gap-2">⚙️ 教師出題控制面板</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-lg font-bold mb-2">測驗題數</label>
+                    <div class="flex gap-2 flex-wrap">
+                        <button class="num-btn px-4 py-2 border-2 border-amber-700 bg-amber-700 text-white rounded-lg" onclick="setCount(this, 5)">5題</button>
+                        <button class="num-btn px-4 py-2 border-2 border-amber-200 text-amber-900 hover:bg-amber-50 rounded-lg" onclick="setCount(this, 8)">8題</button>
+                        <button class="num-btn px-4 py-2 border-2 border-amber-200 text-amber-900 hover:bg-amber-50 rounded-lg" onclick="setCount(this, 10)">10題</button>
+                        <button class="num-btn px-4 py-2 border-2 border-amber-200 text-amber-900 hover:bg-amber-50 rounded-lg" onclick="setCount(this, 16)">16題</button>
+                        <button class="num-btn px-4 py-2 border-2 border-amber-200 text-amber-900 hover:bg-amber-50 rounded-lg" onclick="setCount(this, 20)">20題</button>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-lg font-bold mb-2">餘數設定</label>
+                    <select id="remainder-type" class="w-full border-2 border-stone-300 rounded-lg p-2 text-lg focus:border-amber-500 outline-none">
+                        <option value="exact">必定整除</option>
+                        <option value="remainder">必定有餘數</option>
+                        <option value="random">隨機 (皆可)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="custom-range-panel" class="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-4">
+                <h3 class="font-bold text-stone-700 border-b border-stone-300 pb-2">🎯 自訂被除數與除數範圍 (最大99)</h3>
+                
+                <div class="bg-white p-3 rounded shadow-sm border-l-4 border-amber-500">
+                    <label class="block font-bold text-amber-900 mb-1">被除數範圍</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="divd-min" value="1" min="0.01" max="99" step="0.01" class="w-20 border rounded p-1 text-center">
+                        <span>~</span>
+                        <input type="number" id="divd-max" value="50" min="0.01" max="99" step="0.01" class="w-20 border rounded p-1 text-center">
+                        <select id="divd-decimals" class="ml-auto border rounded p-1">
+                            <option value="0">整數</option>
+                            <option value="1" selected>一位小數</option>
+                            <option value="2">兩位小數</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="bg-white p-3 rounded shadow-sm border-l-4 border-blue-500">
+                    <label class="block font-bold text-blue-900 mb-1">除數範圍</label>
+                    <div class="flex items-center gap-2">
+                        <input type="number" id="divr-min" value="0.1" min="0.01" max="99" step="0.01" class="w-20 border rounded p-1 text-center">
+                        <span>~</span>
+                        <input type="number" id="divr-max" value="10" min="0.01" max="99" step="0.01" class="w-20 border rounded p-1 text-center">
+                        <select id="divr-decimals" class="ml-auto border rounded p-1">
+                            <option value="0">整數</option>
+                            <option value="1" selected>一位小數</option>
+                            <option value="2">兩位小數</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <button onclick="startQuiz()" class="w-full bg-amber-700 hover:bg-amber-800 text-white text-xl font-bold py-4 rounded-xl shadow-md transition">
+            開始測驗
+        </button>
+    </div>
+
+    <!-- 學習單測驗區 -->
+    <div id="quiz-container" class="max-w-4xl mx-auto hidden">
+        <div class="bg-white p-4 rounded-xl shadow-sm mb-4 flex items-center gap-4">
+            <span class="font-bold text-stone-600">進度：</span>
+            <div class="flex-1 bg-stone-200 rounded-full h-4 overflow-hidden">
+                <div id="progress-bar" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+            <span id="progress-text" class="font-bold text-emerald-700">0 / 5</span>
+        </div>
+
+        <div class="bg-white p-8 rounded-xl shadow-lg border-t-4 border-emerald-600">
+            <div class="mb-6 border-b border-stone-200 pb-4">
+                <h1 class="text-2xl font-bold mb-2 flex items-center gap-2">
+                    <span class="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-lg">第 <span id="current-q-num">1</span> 題</span>
+                </h1>
+                <p class="text-xl mt-4 text-stone-800">
+                    請計算 <span id="display-dividend" class="highlight-text px-2"></span> ÷ <span id="display-divisor" class="highlight-text px-2"></span> 的答案，並寫下完整直式過程。
+                </p>
+            </div>
+
+            <!-- 直式解題區 -->
+            <div id="step-calc" class="step-container active">
+                <div class="bg-stone-50 p-6 rounded-xl border border-stone-200 overflow-x-auto text-center">
+                    <p class="text-stone-600 mb-4 text-left">請依照順序，一格一格填入數字（商、相減、餘數、放下來的數字）。每一格都必須填對才能前進到下一格。</p>
+                    
+                    <div id="math-grid-area" class="inline-block text-left"></div>
+                    
+                    <p id="grid-feedback" class="mt-3 text-red-600 font-bold h-6 text-left"></p>
+                </div>
+            </div>
+
+            <!-- 成功與下一題 -->
+            <div id="success-msg" class="step-container text-center py-8">
+                <div class="text-6xl mb-4">✨</div>
+                <h2 class="text-3xl font-bold text-emerald-600 mb-6">直式計算完全正確！</h2>
+                <button onclick="nextQuestion()" class="bg-amber-700 hover:bg-amber-800 text-white text-xl font-bold py-3 px-10 rounded-full shadow-lg transition">
+                    進入下一題 ➡️
+                </button>
+            </div>
+            
+            <!-- 結算畫面 -->
+            <div id="final-msg" class="step-container text-center py-10 hidden">
+                <div class="text-6xl mb-4">🏆</div>
+                <h2 class="text-4xl font-bold text-amber-600 mb-4">恭喜完成所有直式挑戰！</h2>
+                <button onclick="location.reload()" class="mt-6 bg-stone-600 hover:bg-stone-700 text-white text-lg font-bold py-3 px-8 rounded-lg transition">
+                    重新設定測驗
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let totalQuestions = 5;
+        let currentQuestion = 0;
+        let currentAnswers = {};
+        let inputOrder = [];   // 依運算順序排列的輸入格 id
+        let orderIdx = 0;      // 目前輪到第幾格
+        let cellLocked = false; // 答錯的震動期間暫時鎖定
+
+        function setCount(btn, num) {
+            document.querySelectorAll('.num-btn').forEach(b => {
+                b.classList.remove('bg-amber-700', 'text-white', 'border-amber-700');
+                b.classList.add('border-amber-200', 'text-amber-900');
+            });
+            btn.classList.remove('border-amber-200', 'text-amber-900');
+            btn.classList.add('bg-amber-700', 'text-white', 'border-amber-700');
+            totalQuestions = num;
+        }
+
+        function generateValidNumbers() {
+            const divdMin = parseFloat(document.getElementById('divd-min').value);
+            const divdMax = parseFloat(document.getElementById('divd-max').value);
+            const divdDec = parseInt(document.getElementById('divd-decimals').value);
+            const divrMin = parseFloat(document.getElementById('divr-min').value);
+            const divrMax = parseFloat(document.getElementById('divr-max').value);
+            const divrDec = parseInt(document.getElementById('divr-decimals').value);
+            const remType = document.getElementById('remainder-type').value;
+
+            let dividend, divisor;
+            let attempts = 0;
+            
+            while (attempts < 1000) {
+                const divrFactor = Math.pow(10, divrDec);
+                let rInt = Math.floor(Math.random() * (Math.floor(divrMax * divrFactor) - Math.ceil(divrMin * divrFactor) + 1)) + Math.ceil(divrMin * divrFactor);
+                divisor = rInt / divrFactor;
+                if (divisor === 0) { attempts++; continue; }
+
+                const divdFactor = Math.pow(10, divdDec);
+                let dInt = Math.floor(Math.random() * (Math.floor(divdMax * divdFactor) - Math.ceil(divdMin * divdFactor) + 1)) + Math.ceil(divdMin * divdFactor);
+                dividend = dInt / divdFactor;
+
+                if (dividend < divisor) { attempts++; continue; }
+
+                // 驗證餘數條件 (使用大數值避免浮點數誤差)
+                const maxDec = Math.max(divdDec, divrDec);
+                const scale = Math.pow(10, maxDec);
+                const testRem = Math.round(dividend * scale) % Math.round(divisor * scale);
+                
+                if (remType === 'exact' && testRem !== 0) { attempts++; continue; }
+                if (remType === 'remainder' && testRem === 0) { attempts++; continue; }
+
+                return {
+                    dividendStr: dividend.toString(),
+                    divisorStr: divisor.toString(),
+                    shiftCount: divisor.toString().includes('.') ? divisor.toString().split('.')[1].length : 0
+                };
+            }
+            alert("目前範圍設定很難生成題目，請放寬最大值或最小值！");
+            return null;
+        }
+
+        function startQuiz() {
+            currentQuestion = 0;
+            document.getElementById('setup-panel').style.display = 'none';
+            document.getElementById('quiz-container').style.display = 'block';
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            const data = generateValidNumbers();
+            if (!data) {
+                document.getElementById('setup-panel').style.display = 'block';
+                document.getElementById('quiz-container').style.display = 'none';
+                return;
+            }
+
+            currentQuestion++;
+            updateProgress();
+
+            document.getElementById('display-dividend').innerText = data.dividendStr;
+            document.getElementById('display-divisor').innerText = data.divisorStr;
+            document.getElementById('current-q-num').innerText = currentQuestion;
+
+            currentAnswers = { inputs: {} };
+            inputOrder = [];
+            orderIdx = 0;
+            cellLocked = false;
+            renderLongDivisionGrid(data.divisorStr, data.dividendStr, data.shiftCount);
+
+            document.getElementById('step-calc').classList.add('active');
+            document.getElementById('success-msg').classList.remove('active');
+            document.getElementById('grid-feedback').innerText = '';
+
+            setupInputs();
+        }
+
+        function updateProgress() {
+            const pct = (currentQuestion - 1) / totalQuestions * 100;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+            document.getElementById('progress-text').innerText = `${currentQuestion - 1} / ${totalQuestions}`;
+        }
+
+        // ====== 核心：動態長除法演算引擎 ======
+        function calculateLongDivisionSteps(rawDigitsStr, divisorInt) {
+            let steps = [];
+            let currentValStr = "";
+            let quotientDigits = [];
+            let hasStarted = false;
+
+            for (let i = 0; i < rawDigitsStr.length; i++) {
+                currentValStr += rawDigitsStr[i];
+                let currentNum = parseInt(currentValStr, 10);
+                let qDigit = Math.floor(currentNum / divisorInt);
+                
+                quotientDigits.push(qDigit);
+
+                // 只要商數大於0，或者是已經開始計算了，或者是最後一個數字，都要留下運算紀錄
+                if (qDigit > 0 || hasStarted || i === rawDigitsStr.length - 1) {
+                    if (qDigit > 0) hasStarted = true;
+                    
+                    let subVal = qDigit * divisorInt;
+                    let remVal = currentNum - subVal;
+
+                    if (hasStarted || i === rawDigitsStr.length - 1) {
+                        steps.push({
+                            type: 'sub',
+                            val: subVal.toString(),
+                            endIdx: i // 在原字串中的對齊位置
+                        });
+                        
+                        if (i < rawDigitsStr.length - 1) {
+                            steps.push({
+                                type: 'rem',
+                                val: remVal.toString(),
+                                endIdx: i,
+                                bringDown: rawDigitsStr[i+1]
+                            });
+                        } else {
+                            steps.push({
+                                type: 'final_rem',
+                                val: remVal.toString(),
+                                endIdx: i
+                            });
+                        }
+                    }
+                }
+                currentValStr = (currentNum - qDigit * divisorInt).toString();
+                if (currentValStr === "0") currentValStr = ""; // 去除前導0
+            }
+            return { steps, quotientDigits };
+        }
+
+        function renderLongDivisionGrid(divrStr, divdStr, shiftCount) {
+            let dParts = divdStr.split('.');
+            let dDecPart = dParts[1] || "";
+            let padCount = Math.max(0, shiftCount - dDecPart.length);
+            
+            // 將要處理的純數字序列（含補上的0）
+            let rawDigitsStr = dParts[0] + dDecPart + "0".repeat(padCount);
+            let B = Math.round(parseFloat(divrStr) * Math.pow(10, shiftCount)); // 整數化除數
+
+            let engine = calculateLongDivisionSteps(rawDigitsStr, B);
+            
+            // CSS Grid 欄位設定陣列與對齊映射
+            let gridItems = [];
+            let colWidths = [];
+            let colMapping = []; 
+            let currentCol = 1;
+
+            // --- 繪製 Row 2: 除數、廠字頭、被除數 ---
+            for (let char of divrStr) {
+                let isDot = char === '.';
+                colWidths.push(isDot ? '1rem' : '3rem');
+                gridItems.push({
+                    row: 2, col: currentCol, content: char,
+                    classes: `cell ${isDot ? 'cell-dot crossed-out text-stone-400 text-sm' : 'cell-num font-bold text-stone-800'}`
+                });
+                currentCol++;
+            }
+
+            for (let i = 0; i < divdStr.length; i++) {
+                let char = divdStr[i];
+                let isDot = char === '.';
+                colWidths.push(isDot ? '1rem' : '3rem');
+                let classes = `cell bracket-top ${isDot ? 'cell-dot crossed-out text-stone-400 text-sm' : 'cell-num font-bold text-stone-800'}`;
+                if (i === 0) classes += ' bracket-left';
+                
+                gridItems.push({ row: 2, col: currentCol, content: char, classes });
+                if (!isDot) colMapping.push(currentCol);
+                currentCol++;
+            }
+
+            // 廠字頭內補零格（最先填寫）
+            for (let i = 0; i < padCount; i++) {
+                colWidths.push('3rem');
+                let inputId = `pad-${i}`;
+                currentAnswers.inputs[inputId] = '0';
+                inputOrder.push(inputId);
+                let content = `<input type="text" id="${inputId}" class="cell-input border-amber-300 text-amber-700 font-bold" maxlength="1" placeholder="0">`;
+                gridItems.push({ row: 2, col: currentCol, content, classes: `cell bracket-top cell-num grid-helper bg-amber-50` });
+                colMapping.push(currentCol);
+                currentCol++;
+            }
+
+            // --- 繪製 Row 1: 商數 ---
+            let firstNonZero = engine.quotientDigits.findIndex(d => d > 0);
+            if (firstNonZero === -1) firstNonZero = engine.quotientDigits.length - 1;
+
+            for (let i = firstNonZero; i < engine.quotientDigits.length; i++) {
+                let col = colMapping[i];
+                let inputId = `q-${i}`;
+                currentAnswers.inputs[inputId] = engine.quotientDigits[i].toString();
+                let content = `<input type="text" id="${inputId}" class="cell-input border-emerald-400 text-emerald-900 font-bold" maxlength="1">`;
+                
+                // 動態判斷新小數點位置 (如果需要的話，加上紅色小數點提示)
+                let classes = 'cell cell-num grid-helper bg-emerald-50';
+                let origDec = dDecPart.length;
+                let newDecPosFromRight = origDec - shiftCount;
+                if (newDecPosFromRight > 0 && i === rawDigitsStr.length - newDecPosFromRight - 1) {
+                    classes += ' q-dot';
+                }
+
+                gridItems.push({ row: 1, col: col, content, classes });
+            }
+
+            // --- 繪製 Row 3+: 長除法計算過程 ---
+            let currentRow = 3;
+            engine.steps.forEach((step, stepIdx) => {
+                if (step.type === 'sub') {
+                    // 每個步驟先填這一位的商，再填相減的數字
+                    inputOrder.push(`q-${step.endIdx}`);
+
+                    for (let j = 0; j < step.val.length; j++) {
+                        let digitIdx = step.endIdx - step.val.length + 1 + j;
+                        let col = colMapping[digitIdx];
+                        let inputId = `sub-${stepIdx}-${j}`;
+                        currentAnswers.inputs[inputId] = step.val[j];
+                        inputOrder.push(inputId);
+                        
+                        let content = `<input type="text" id="${inputId}" class="cell-input border-stone-300 text-stone-700" maxlength="1">`;
+                        let classes = `cell cell-num border-b-2 border-stone-800 pb-1`;
+                        gridItems.push({ row: currentRow, col: col, content, classes });
+                    }
+                    currentRow++;
+                } 
+                else if (step.type === 'rem') {
+                    for (let j = 0; j < step.val.length; j++) {
+                        let digitIdx = step.endIdx - step.val.length + 1 + j;
+                        let col = colMapping[digitIdx];
+                        let inputId = `rem-${stepIdx}-${j}`;
+                        currentAnswers.inputs[inputId] = step.val[j];
+                        inputOrder.push(inputId);
+                        let content = `<input type="text" id="${inputId}" class="cell-input border-blue-300 text-blue-700" maxlength="1">`;
+                        gridItems.push({ row: currentRow, col: col, content, classes: 'cell cell-num' });
+                    }
+                    
+                    // 放下來的數字
+                    let bringCol = colMapping[step.endIdx + 1];
+                    let bringId = `bring-${stepIdx}`;
+                    currentAnswers.inputs[bringId] = step.bringDown;
+                    inputOrder.push(bringId);
+                    let content = `<input type="text" id="${bringId}" class="cell-input border-purple-400 text-purple-700 border-dashed bg-purple-50" maxlength="1">`;
+                    gridItems.push({ row: currentRow, col: bringCol, content, classes: 'cell cell-num' });
+                    
+                    // 箭頭
+                    gridItems.push({ row: currentRow - 1, col: bringCol, content: '↓', classes: 'cell cell-num text-purple-300 text-sm h-full items-end pb-1' });
+                    currentRow++;
+                } 
+                else if (step.type === 'final_rem') {
+                    for (let j = 0; j < step.val.length; j++) {
+                        let digitIdx = step.endIdx - step.val.length + 1 + j;
+                        let col = colMapping[digitIdx];
+                        let inputId = `frem-${j}`;
+                        currentAnswers.inputs[inputId] = step.val[j];
+                        inputOrder.push(inputId);
+                        let content = `<input type="text" id="${inputId}" class="cell-input border-red-400 text-red-700 font-bold bg-red-50" maxlength="1">`;
+                        let classes = `cell cell-num border-b-4 border-double border-red-800 pb-1`;
+                        gridItems.push({ row: currentRow, col: col, content, classes });
+                    }
+                }
+            });
+
+            // --- 將陣列輸出為 DOM ---
+            let gridHtml = `<div class="math-grid" style="grid-template-columns: ${colWidths.join(' ')};">`;
+            gridItems.forEach(item => {
+                gridHtml += `<div class="${item.classes}" style="grid-row: ${item.row}; grid-column: ${item.col};">${item.content || ''}</div>`;
+            });
+            gridHtml += `</div>`;
+            
+            document.getElementById('math-grid-area').innerHTML = gridHtml;
+        }
+
+        // ====== 逐格驗證：填錯震動、不能前進 ======
+        function setupInputs() {
+            const area = document.getElementById('math-grid-area');
+
+            inputOrder.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.setAttribute('inputmode', 'numeric');
+                el.setAttribute('autocomplete', 'off');
+                el.addEventListener('input', onCellInput);
+            });
+
+            // 只能停留在「目前這一格」，點其他格會被拉回來
+            area.onfocusin = (e) => {
+                if (!e.target.classList || !e.target.classList.contains('cell-input')) return;
+                if (orderIdx < inputOrder.length && e.target.id !== inputOrder[orderIdx]) {
+                    focusCurrent();
+                }
+            };
+
+            focusCurrent();
+        }
+
+        function focusCurrent() {
+            document.querySelectorAll('.cell-input.current').forEach(e => e.classList.remove('current'));
+            const id = inputOrder[orderIdx];
+            if (!id) return;
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('current');
+                el.focus({ preventScroll: false });
+            }
+        }
+
+        function vibrateDevice() {
+            try { if (navigator.vibrate) navigator.vibrate([120, 60, 120]); } catch (e) {}
+        }
+
+        function onCellInput(e) {
+            const el = e.target;
+            if (cellLocked || el.id !== inputOrder[orderIdx]) { el.value = ''; return; }
+
+            const v = el.value.replace(/\D/g, '').slice(-1);
+            el.value = v;
+            if (v === '') return;
+
+            const feedback = document.getElementById('grid-feedback');
+
+            if (v === currentAnswers.inputs[el.id]) {
+                // 答對：鎖定此格並前進
+                el.classList.remove('error', 'shake', 'current');
+                el.classList.add('correct');
+                el.readOnly = true;
+                feedback.innerText = '';
+                orderIdx++;
+
+                if (orderIdx >= inputOrder.length) {
+                    el.blur();
+                    finishQuestion();
+                } else {
+                    focusCurrent();
+                }
+            } else {
+                // 答錯：震動、清除，停留在同一格
+                cellLocked = true;
+                el.readOnly = true;
+                el.classList.remove('shake');
+                void el.offsetWidth; // 重新觸發動畫
+                el.classList.add('error', 'shake');
+                vibrateDevice();
+                feedback.innerText = '這一格不對喔，再想想看！';
+
+                setTimeout(() => {
+                    el.classList.remove('error', 'shake');
+                    el.value = '';
+                    el.readOnly = false;
+                    cellLocked = false;
+                    el.focus();
+                }, 500);
+            }
+        }
+
+        function finishQuestion() {
+            document.getElementById('step-calc').classList.remove('active');
+            document.getElementById('success-msg').classList.add('active');
+
+            const pct = currentQuestion / totalQuestions * 100;
+            document.getElementById('progress-bar').style.width = `${pct}%`;
+            document.getElementById('progress-text').innerText = `${currentQuestion} / ${totalQuestions}`;
+        }
+
+        function nextQuestion() {
+            if (currentQuestion >= totalQuestions) {
+                document.getElementById('success-msg').classList.remove('active');
+                document.getElementById('final-msg').classList.remove('hidden');
+                document.getElementById('final-msg').classList.add('active');
+            } else {
+                loadQuestion();
+            }
+        }
+    </script>
+</body>
+</html>
