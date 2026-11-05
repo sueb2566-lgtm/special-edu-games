@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>特教互動遊戲網</title>
+    <style>
+        body {
+            background-color: #fcf8f2; /* 溫暖的米色背景 */
+            font-family: "微軟正黑體", sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #f0e6eb;
+        }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            background-color: #fde8f0; /* 淺粉色標籤底 */
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #a84b70;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        .card-title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #333;
+            margin: 0 0 12px 0;
+        }
+        .card-desc {
+            font-size: 15px;
+            color: #666;
+            line-height: 1.6;
+            flex-grow: 1;
+            margin-bottom: 24px;
+        }
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .date {
+            font-size: 13px;
+            color: #999;
+        }
+        .btn {
+            background-color: #b34a78; /* 深粉色按鈕 */
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+        .btn:hover {
+            background-color: #90385f;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 卡片 1：小數除法 -->
+        <div class="card">
+            <div class="card-header">
+                <span>數學特需</span>
+                <span>使用中</span>
+            </div>
+            <h2 class="card-title">小數除法訓練器</h2>
+            <p class="card-desc">透過互動介面練習小數除法，提供步驟拆解與提示，幫助學生釐清計算邏輯與小數點位置。</p>
+            <div class="card-footer">
+                <span class="date">最新上架</span>
+                <!-- 這裡的 href 對應你上傳的檔案名稱 -->
+                <a href="小數除法訓練器.html" class="btn">打開教材</a>
+            </div>
+        </div>
+
+        <!-- 卡片 2：數字估值 -->
+        <div class="card">
+            <div class="card-header">
+                <span>數學特需</span>
+                <span>使用中</span>
+            </div>
+            <h2 class="card-title">數字估值估值看</h2>
+            <p class="card-desc">引導學生練習數值大小的估算，培養對數字的敏銳度與生活應用能力。</p>
+            <div class="card-footer">
+                <span class="date">最新上架</span>
+                <!-- 這裡的 href 對應你上傳的檔案名稱 -->
+                <a href="數字估值估值看.html" class="btn">打開教材</a>
+            </div>
+        </div>
+
+        <!-- 卡片 3：社會技巧 (保留參考圖樣式作為擴充) -->
+        <div class="card">
+            <div class="card-header">
+                <span>社會技巧 三年級</span>
+                <span>準備中</span>
+            </div>
+            <h2 class="card-title">需要幫忙，我會說出來</h2>
+            <p class="card-desc">主動求助：用「試一試、舉起手、說清楚、說謝謝」，需要幫忙時說出來。內含語音挑戰題與學習單。</p>
+            <div class="card-footer">
+                <span class="date">即將推出</span>
+                <a href="#" class="btn" style="background-color: #ccc; cursor: not-allowed;">敬請期待</a>
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>
