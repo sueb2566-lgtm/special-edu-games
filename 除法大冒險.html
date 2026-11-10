@@ -1,4 +1,28 @@
-import React, { useState, useEffect } from 'react';
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三年級數學大冒險 - 除法探索樂園</title>
+    
+    <!-- 引入 Tailwind CSS 進行排版與設計 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React 與 ReactDOM (使用 CDN) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel 讓瀏覽器可以直接讀懂 JSX 語法 -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gradient-to-b from-sky-200 to-indigo-300 min-h-screen">
+    
+    <!-- 遊戲會被渲染在這個 div 裡面 -->
+    <div id="root"></div>
+
+    <!-- 遊戲主要邏輯 -->
+    <script type="text/babel">
+const { useState, useEffect } = React;
 
 // --- 共用元件 ---
 const Button = ({ onClick, children, className = '', disabled = false, variant = 'primary' }) => {
@@ -47,7 +71,7 @@ const ITEMS = [
 // --- 可愛動物角色 ---
 const CHARACTERS = ['🐶', '🐱', '🐰', '🐻', '🐼', '🦊', '🐸', '🐨'];
 
-// --- 模式 1: 分裝任務 (拖曳版) ---
+// --- 模式 1: 分裝任務 ---
 const Mode1 = ({ onBack }) => {
   const [isPractice, setIsPractice] = useState(true);
   const [qCount, setQCount] = useState(0);
@@ -55,11 +79,11 @@ const Mode1 = ({ onBack }) => {
   const generateQuestion = (count) => {
     let tItems, pBox;
     if (count === 0) {
-      tItems = Math.floor(Math.random() * 4) + 6; // 6 to 9
-      pBox = Math.floor(Math.random() * 2) + 2; // 2 to 3
+      tItems = Math.floor(Math.random() * 4) + 6; 
+      pBox = Math.floor(Math.random() * 2) + 2; 
     } else {
-      tItems = Math.floor(Math.random() * 15) + 10; // 10 to 24
-      pBox = Math.floor(Math.random() * 4) + 3; // 3 to 6
+      tItems = Math.floor(Math.random() * 15) + 10; 
+      pBox = Math.floor(Math.random() * 4) + 3; 
     }
     const itemType = ITEMS[Math.floor(Math.random() * ITEMS.length)];
     return { totalItems: tItems, perBox: pBox, boxCount: Math.ceil(tItems / pBox), item: itemType };
@@ -168,7 +192,6 @@ const Mode1 = ({ onBack }) => {
     }
   };
 
-  // 計算已裝滿幾盒
   const filledBoxCount = Array.from({ length: qData.boxCount }).filter((_, idx) => {
     return items.filter(i => i.loc === `box-${idx}`).length === qData.perBox;
   }).length;
@@ -242,7 +265,6 @@ const Mode1 = ({ onBack }) => {
           })}
         </div>
 
-        {/* 課本樣式的連減紀錄板 */}
         {isPractice && step === 'drag' && filledBoxCount > 0 && (
           <div className="bg-sky-50 border-4 border-sky-300 p-6 rounded-3xl text-2xl font-mono shadow-xl min-w-[290px] animate-in fade-in slide-in-from-right duration-500">
              <div className="font-extrabold text-sky-800 mb-4 border-b-4 border-sky-200 pb-3 text-center flex items-center justify-center gap-2">
@@ -308,7 +330,7 @@ const Mode1 = ({ onBack }) => {
   );
 };
 
-// --- 模式 2: 平分派對 (拖曳版) ---
+// --- 模式 2: 平分派對 ---
 const Mode2 = ({ onBack }) => {
   const [isPractice, setIsPractice] = useState(true);
   const [qCount, setQCount] = useState(0);
@@ -316,11 +338,11 @@ const Mode2 = ({ onBack }) => {
   const generateQuestion = (count) => {
     let tItems, kids;
     if (count === 0) {
-      tItems = Math.floor(Math.random() * 4) + 6; // 6 to 9
-      kids = Math.floor(Math.random() * 2) + 2; // 2 to 3
+      tItems = Math.floor(Math.random() * 4) + 6;
+      kids = Math.floor(Math.random() * 2) + 2; 
     } else {
-      tItems = Math.floor(Math.random() * 15) + 10; // 10 to 24
-      kids = Math.floor(Math.random() * 4) + 3; // 3 to 6
+      tItems = Math.floor(Math.random() * 15) + 10; 
+      kids = Math.floor(Math.random() * 4) + 3; 
     }
     const itemType = ITEMS[Math.floor(Math.random() * ITEMS.length)];
     return { totalItems: tItems, numKids: kids, item: itemType };
@@ -566,7 +588,7 @@ const Mode2 = ({ onBack }) => {
 
 // --- 模式 3: 解題城堡 (應用問題挑戰) ---
 const Mode3Setup = ({ onStart, onBack }) => {
-  const [difficulty, setDifficulty] = useState('random'); // 'no-remainder', 'remainder', 'random'
+  const [difficulty, setDifficulty] = useState('random');
   const [qTotal, setQTotal] = useState(5);
 
   const handleStart = (subMode) => {
@@ -577,7 +599,7 @@ const Mode3Setup = ({ onStart, onBack }) => {
     <div className="flex flex-col w-full max-w-2xl bg-indigo-50 p-6 md:p-8 rounded-3xl shadow-xl border-4 border-indigo-200 animate-in fade-in zoom-in duration-300 z-10 relative">
       <div className="flex justify-between items-center mb-6">
         <Button onClick={onBack} variant="primary" className="text-sm px-4 py-2"><span className="text-xl">⬅️</span> 返回主選單</Button>
-        <h2 className="text-3xl font-extrabold text-indigo-800">6-3 應用問題解題挑戰 🏰</h2>
+        <h2 className="text-3xl font-extrabold text-indigo-800">6-3 應用問題挑戰 🏰</h2>
         <div className="w-24"></div>
       </div>
       
@@ -633,26 +655,22 @@ const Mode3 = ({ onBack }) => {
   const [qIndex, setQIndex] = useState(1);
   const [qData, setQData] = useState(null);
   
-  // 3步驟解題狀態
   const [step, setStep] = useState(1); 
-  const [hD1, setHD1] = useState(''); // 橫式被除數
-  const [hD2, setHD2] = useState(''); // 橫式除數
+  const [hD1, setHD1] = useState(''); 
+  const [hD2, setHD2] = useState(''); 
   
-  // 直式狀態
   const [vQ, setVQ] = useState('');
   const [vP, setVP] = useState('');
   const [vR, setVR] = useState('');
   const [activeInput, setActiveInput] = useState('hD1');
   const [errorInput, setErrorInput] = useState(null);
   
-  // 答句狀態
   const [aQ, setAQ] = useState('');
   const [aR, setAR] = useState('');
 
   const [feedback, setFeedback] = useState(null);
   const [isCompleted, setIsCompleted] = useState(false);
   
-  // 圖解小幫手
   const [showHelper, setShowHelper] = useState(false);
   const [helperGroups, setHelperGroups] = useState(0);
 
@@ -664,15 +682,15 @@ const Mode3 = ({ onBack }) => {
   ];
 
   const generateQuestion = (cfg) => {
-    let d = Math.floor(Math.random() * 7) + 3; // 除數 3~9
-    let q = Math.floor(Math.random() * 8) + 2; // 商 2~9 
+    let d = Math.floor(Math.random() * 7) + 3; 
+    let q = Math.floor(Math.random() * 8) + 2; 
     let r = 0;
 
     if (cfg.difficulty === 'remainder' || (cfg.difficulty === 'random' && Math.random() > 0.5)) {
        r = Math.floor(Math.random() * (d - 1)) + 1;
     }
 
-    let dd = d * q + r; // 被除數
+    let dd = d * q + r; 
     const tpl = TEMPLATES[Math.floor(Math.random() * TEMPLATES.length)];
 
     return { dividend: dd, divisor: d, correctQ: q, correctR: r, template: tpl, str: tpl.text(dd, d) };
@@ -990,12 +1008,12 @@ const Mode3 = ({ onBack }) => {
   );
 };
 
-// --- 主選單 (經典簡潔版) ---
-export default function App() {
-  const [currentMode, setCurrentMode] = useState('menu'); // 'menu', 'mode1', 'mode2', 'mode3'
+// --- 主選單 ---
+function App() {
+  const [currentMode, setCurrentMode] = useState('menu'); 
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-200 to-indigo-300 p-6 font-sans text-gray-800 flex flex-col items-center justify-center relative">
+    <div className="min-h-screen p-6 font-sans text-gray-800 flex flex-col items-center justify-center relative">
       {currentMode === 'menu' && (
         <div className="flex flex-col items-center max-w-2xl w-full bg-white/90 backdrop-blur-md p-8 md:p-12 rounded-[3rem] shadow-2xl border-8 border-sky-300 animate-in fade-in zoom-in duration-300">
           <div className="text-6xl mb-2 animate-bounce">🎒</div>
@@ -1038,3 +1056,10 @@ export default function App() {
     </div>
   );
 }
+
+// 將 App 渲染到畫面上
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+    </script>
+</body>
+</html>
